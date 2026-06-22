@@ -31,7 +31,9 @@ class Order extends Model
         'status_id',
     ];
 
-    protected $casts = [];
+    protected $casts = [
+        'status_id' => 'integer',
+    ];
 
     protected $hidden = [
         'updated_at',

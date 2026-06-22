@@ -1,0 +1,869 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Onfly API",
+        "description": "API de gestão de pedidos Onfly.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Ambiente local"
+        }
+    ],
+    "paths": {
+        "/auth/token": {
+            "post": {
+                "tags": [
+                    "Autenticação"
+                ],
+                "summary": "Gerar token de acesso JWT",
+                "description": "Autentica o usuário via x_api_key e retorna um token JWT.",
+                "operationId": "d533fc0dd1c51d7f9b2c7504bf5b35d7",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "x_api_key"
+                                ],
+                                "properties": {
+                                    "x_api_key": {
+                                        "description": "Chave de API do usuário.",
+                                        "type": "string",
+                                        "example": "abc123xyz..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token gerado com sucesso.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaToken"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credencial inválida.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dados de entrada inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pedido": {
+            "get": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Listar pedidos de viagem",
+                "description": "Lista os pedidos do usuário autenticado com filtros opcionais por status e período.",
+                "operationId": "55228a76d283b8cb0fde57130eccbb09",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrar por status do pedido. 1=Solicitado, 2=Aprovado, 3=Cancelado.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    },
+                    {
+                        "name": "data_inicio",
+                        "in": "query",
+                        "description": "Data de início do filtro no formato DD-MM-YYYY.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "01-01-2025"
+                        }
+                    },
+                    {
+                        "name": "data_fim",
+                        "in": "query",
+                        "description": "Data de fim do filtro no formato DD-MM-YYYY. Deve ser igual ou posterior a data_inicio.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "31-01-2025"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de pedidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaListaPedidos"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Criar pedido de viagem",
+                "description": "Cria um novo pedido de viagem para o usuário autenticado.",
+                "operationId": "2503ac538d21340532cb460ed46b6964",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "solicitante",
+                                    "data_partida",
+                                    "data_retorno",
+                                    "destino"
+                                ],
+                                "properties": {
+                                    "solicitante": {
+                                        "description": "Nome do solicitante da viagem.",
+                                        "type": "string",
+                                        "example": "João Silva"
+                                    },
+                                    "data_partida": {
+                                        "description": "Data de partida no formato DD-MM-YYYY.",
+                                        "type": "string",
+                                        "example": "15-01-2025"
+                                    },
+                                    "data_retorno": {
+                                        "description": "Data de retorno no formato DD-MM-YYYY. Deve ser igual ou posterior à data de partida.",
+                                        "type": "string",
+                                        "example": "20-01-2025"
+                                    },
+                                    "destino": {
+                                        "description": "Dados do destino da viagem.",
+                                        "properties": {
+                                            "cidade": {
+                                                "type": "string",
+                                                "example": "São Paulo"
+                                            },
+                                            "estado": {
+                                                "type": "string",
+                                                "example": "SP"
+                                            },
+                                            "pais": {
+                                                "type": "string",
+                                                "example": "Brasil"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "status": {
+                                        "description": "Status inicial do pedido. Opcional. 1=Solicitado, 2=Aprovado, 3=Cancelado.",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "enum": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Pedido criado com sucesso.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaPedido"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dados de entrada inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/pedido/{referencia_pedido}": {
+            "get": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Buscar pedido por referência",
+                "description": "Retorna os dados de um pedido específico pelo seu identificador único.",
+                "operationId": "2802cae8eba6d4eab69040b62bef6094",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "referencia_pedido",
+                        "in": "path",
+                        "description": "Referência UUID do pedido.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pedido encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaPedido"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido não encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/pedido/{referencia_pedido}/status": {
+            "patch": {
+                "tags": [
+                    "Pedidos"
+                ],
+                "summary": "Alterar status de um pedido",
+                "description": "Altera o status de um pedido existente. Requer perfil administrador. Apenas os status 2 (Aprovado) e 3 (Cancelado) são aceitos.",
+                "operationId": "1d1efff1df5c7ba0e381bc927bd516bb",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "referencia_pedido",
+                        "in": "path",
+                        "description": "Referência UUID do pedido.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "description": "2 = Aprovado, 3 = Cancelado.",
+                                        "type": "integer",
+                                        "example": 2,
+                                        "enum": [
+                                            2,
+                                            3
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status alterado com sucesso.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaPedido"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Acesso negado. Apenas administradores podem alterar status.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Pedido não encontrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Transição de status inválida (ex: cancelar pedido já aprovado).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dados de entrada inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/ping": {
+            "get": {
+                "tags": [
+                    "Saúde"
+                ],
+                "summary": "Health-check da API",
+                "description": "Verifica se a API está disponível.",
+                "operationId": "41b008b9fce9d1162650a6aa7c6d8185",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "API disponível.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Olá!!! =D"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/usuario": {
+            "post": {
+                "tags": [
+                    "Usuários"
+                ],
+                "summary": "Cadastrar novo usuário",
+                "description": "Cria um novo usuário e retorna os dados com a api_key, exibida apenas neste momento.",
+                "operationId": "5c861b61c867861fb3b8a1b50b8f2c0f",
+                "parameters": [
+                    {
+                        "name": "X-Request-Id",
+                        "in": "header",
+                        "description": "Identificador único da requisição (UUID).",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nome",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "nome": {
+                                        "type": "string",
+                                        "example": "João Silva",
+                                        "maxLength": 255
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "joao@exemplo.com",
+                                        "maxLength": 255
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "senha1234",
+                                        "minLength": 8
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "senha1234",
+                                        "minLength": 8
+                                    },
+                                    "is_admin": {
+                                        "description": "Define se o usuário terá perfil administrador. Opcional, padrão false.",
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Usuário cadastrado com sucesso.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaUsuarioCadastrado"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Header X-Request-Id ausente.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "E-mail já cadastrado.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dados de entrada inválidos.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespostaErro"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "RespostaErro": {
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Mensagem de erro."
+                    }
+                },
+                "type": "object"
+            },
+            "RespostaToken": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "access_token": {
+                                "type": "string",
+                                "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                            },
+                            "token_type": {
+                                "type": "string",
+                                "example": "bearer"
+                            },
+                            "expires_in": {
+                                "type": "string",
+                                "example": "3600"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "RespostaUsuarioCadastrado": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "ref": {
+                                "type": "string",
+                                "format": "uuid",
+                                "example": "9d4e3c2a-..."
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "João Silva"
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "joao@exemplo.com"
+                            },
+                            "is_admin": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "api_key": {
+                                "description": "Exibida apenas neste momento.",
+                                "type": "string",
+                                "example": "abc123xyz..."
+                            },
+                            "criado_em": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2024-01-15 10:30:00"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "Destino": {
+                "properties": {
+                    "cidade": {
+                        "type": "string",
+                        "example": "São Paulo"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "SP"
+                    },
+                    "pais": {
+                        "type": "string",
+                        "example": "Brasil"
+                    }
+                },
+                "type": "object"
+            },
+            "Pedido": {
+                "properties": {
+                    "ref": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "9d4e3c2a-..."
+                    },
+                    "solicitante": {
+                        "type": "string",
+                        "example": "João Silva"
+                    },
+                    "data_partida": {
+                        "description": "Formato DD-MM-YYYY",
+                        "type": "string",
+                        "example": "15-01-2025"
+                    },
+                    "data_retorno": {
+                        "description": "Formato DD-MM-YYYY",
+                        "type": "string",
+                        "example": "20-01-2025"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "Solicitado",
+                        "enum": [
+                            "Solicitado",
+                            "Aprovado",
+                            "Cancelado"
+                        ]
+                    },
+                    "destino": {
+                        "$ref": "#/components/schemas/Destino"
+                    },
+                    "criado_em": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00.000000Z"
+                    }
+                },
+                "type": "object"
+            },
+            "RespostaPedido": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/Pedido"
+                    }
+                },
+                "type": "object"
+            },
+            "RespostaListaPedidos": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Pedido"
+                        }
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Token JWT obtido em POST /auth/token.",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Autenticação",
+            "description": "Autenticação"
+        },
+        {
+            "name": "Pedidos",
+            "description": "Pedidos"
+        },
+        {
+            "name": "Saúde",
+            "description": "Saúde"
+        },
+        {
+            "name": "Usuários",
+            "description": "Usuários"
+        }
+    ]
+}

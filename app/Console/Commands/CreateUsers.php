@@ -27,12 +27,14 @@ class CreateUsers extends Command
         $createdUsers = [];
 
         // 1. Criando o Usuário Cliente
-        $user = User::create([
-            'name' => 'Cliente Onfly',
-            'email' => 'cliente@onfly.com.br',
-            'is_admin' => 0,
-            'password' => bcrypt('password'), // Lembre-se de definir uma senha se o campo for obrigatório
-        ]);
+        $user = User::updateOrCreate(
+            ['email' => 'cliente@onfly.com.br'],
+            [
+                'name' => 'Cliente Onfly',
+                'is_admin' => 0,
+                'password' => bcrypt('password'), // Lembre-se de definir uma senha se o campo for obrigatório
+            ],
+        );
 
         $user_api_key = $user->generateApiKey();
 
@@ -45,12 +47,14 @@ class CreateUsers extends Command
         ];
 
         // 2. Criando o Usuário Admin
-        $admin = User::create([
-            'name' => 'Admin Onfly',
-            'email' => 'admin@onfly.com.br',
-            'is_admin' => 1,
-            'password' => bcrypt('password'),
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@onfly.com.br'],
+            [
+                'name' => 'Admin Onfly',
+                'is_admin' => 1,
+                'password' => bcrypt('password'),
+            ],
+        );
 
         // Correção: Aqui você estava chamando do $user anterior em vez do $admin
         $admin_api_key = $admin->generateApiKey();

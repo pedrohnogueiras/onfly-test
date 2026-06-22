@@ -32,14 +32,20 @@ if [ -f "artisan" ]; then
         php artisan key:generate --force
     fi
 
-    echo "Clearing Laravel cache..."
-    php artisan optimize:clear || true
-
     if [ "$RUN_MIGRATIONS" = "true" ]; then
         echo "Running database migrations..."
         php artisan migrate --force || true
-        php artisan db:seed
+        php artisan db:seed --force || true
+
+        echo "Creating default users (cliente / admin)..."
+        php artisan app:create-users || true
     fi
+
+    echo "Clearing Laravel cache..."
+    php artisan optimize:clear || true
+
+    echo "Generating API documentation (Swagger)..."
+    php artisan l5-swagger:generate || true
 
     chown -R www-data:www-data storage bootstrap/cache
     chmod -R ug+rwX storage bootstrap/cache

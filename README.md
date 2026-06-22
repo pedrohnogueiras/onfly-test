@@ -1,58 +1,252 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Onfly — API de Pedidos Onfly
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST em Laravel para o teste de desenvolvimento Onfly, com autenticação via JWT, isolamento de dados por usuário e visão global para administradores.
 
-## About Laravel
+## Sumário
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [Stack](#stack)
+- [Pré-requisitos](#pré-requisitos)
+- [Subindo o projeto](#subindo-o-projeto)
+- [Portas e URLs](#portas-e-urls)
+- [Helper `./run`](#helper-run)
+- [Usuários de teste](#usuários-de-teste)
+- [Autenticação](#autenticação)
+- [Endpoints](#endpoints)
+- [Documentação Swagger](#documentação-swagger)
+- [Testes](#testes)
+- [Regras de negócio](#regras-de-negócio)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **PHP 8.3** / **Laravel**
+- **MySQL 8.0**
+- **Nginx** (proxy para o PHP-FPM)
+- **Docker / Docker Compose**
+- Autenticação JWT (`firebase/php-jwt`)
+- DTOs com `spatie/laravel-data`
+- Documentação OpenAPI com `darkaonline/l5-swagger`
 
-## Learning Laravel
+## Pré-requisitos
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- Docker
+- Docker Compose
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Nada mais precisa estar instalado na máquina (PHP, Composer e MySQL rodam dentro dos containers).
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Subindo o projeto
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Na primeira vez (ou após mudanças no `Dockerfile`), suba com build:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+docker compose up -d --build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Nas próximas vezes basta:
 
-## Contributing
+```bash
+docker compose up -d
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+O container da aplicação executa automaticamente, no boot, todo o necessário para o projeto ficar pronto (script `docker/php/start_project.sh`):
 
-## Code of Conduct
+1. Cria os diretórios de `storage` e ajusta permissões;
+2. Cria o `.env` a partir do `.env.example` (se ainda não existir);
+3. Instala as dependências do Composer (se `vendor/` não existir);
+4. Gera a `APP_KEY` (se estiver vazia);
+5. Roda as **migrations** e os **seeders** (a tabela `order_status` já é populada com os status `Solicitado`, `Aprovado`, `Cancelado`);
+6. Limpa caches (`optimize:clear`);
+7. Gera a documentação **Swagger**;
+8. Sobe o PHP-FPM.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+> Não é necessário rodar nenhum comando manual após o `docker compose up`. O projeto sobe pronto para uso.
 
-## Security Vulnerabilities
+Para acompanhar o boot:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker logs -f onfly_app
+```
 
-## License
+Para derrubar tudo (incluindo o banco):
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker compose down -v
+```
+
+## Portas e URLs
+
+| Serviço | URL / Porta |
+|---|---|
+| API (via Nginx) | http://localhost:8080 |
+| Documentação Swagger | http://localhost:8080/api/documentation |
+| MySQL (host) | `localhost:3307` (dentro da rede Docker: `mysql:3306`) |
+
+Credenciais do banco (definidas no `docker-compose.yaml`): database `onfly`, usuário `onfly_user`, senha `onfly_user_1`.
+
+## Helper `./run`
+
+O script `./run` executa qualquer comando dentro do container da aplicação:
+
+```bash
+./run php artisan migrate
+./run php artisan test
+./run composer install
+```
+
+## Usuários de teste
+
+Para gerar rapidamente um usuário **cliente** e um **admin** (com as respectivas `api_key`), rode:
+
+```bash
+./run php artisan app:create-users
+```
+
+Isso cria:
+
+| Tipo | E-mail | is_admin |
+|---|---|---|
+| Cliente | `cliente@onfly.com.br` | Não |
+| Admin | `admin@onfly.com.br` | Sim |
+
+O comando imprime no terminal a **`api_key`** de cada um — guarde-a, pois ela só é exibida uma vez. Use-a para obter o token JWT (veja abaixo).
+
+Você também pode criar usuários pela rota pública `POST /usuario` (a `api_key` é retornada na resposta).
+
+## Autenticação
+
+A API usa um fluxo em duas etapas:
+
+1. Cada usuário possui uma **`api_key`** (obtida no cadastro ou via comando de teste).
+2. A `api_key` é trocada por um **token JWT** em `POST /auth/token`. O token (header `Authorization: Bearer <token>`) autentica as rotas protegidas.
+
+> **Header obrigatório em todas as requisições:** `X-Request-Id` (qualquer identificador da requisição). Sem ele, a API responde **400**.
+
+### Obtendo o token
+
+```bash
+curl -X POST http://localhost:8080/auth/token \
+  -H "X-Request-Id: req-1" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"x_api_key":"SUA_API_KEY"}'
+```
+
+Resposta:
+
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1Q...",
+  "token_type": "Bearer",
+  "expires_in": "3600"
+}
+```
+
+## Endpoints
+
+Todas as rotas exigem o header `X-Request-Id`. As rotas de pedido exigem também `Authorization: Bearer <token>`.
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `GET` | `/ping` | — | Health check |
+| `POST` | `/usuario` | — | Cadastro de usuário |
+| `POST` | `/auth/token` | — | Troca `api_key` por JWT |
+| `GET` | `/pedido` | JWT | Lista pedidos (admin vê todos) |
+| `GET` | `/pedido/{referencia_pedido}` | JWT | Detalha um pedido |
+| `POST` | `/pedido` | JWT | Cria um pedido |
+| `PATCH` | `/pedido/{referencia_pedido}/status` | JWT + Admin | Atualiza status do pedido |
+
+### `POST /usuario` — cadastro
+
+```bash
+curl -X POST http://localhost:8080/usuario \
+  -H "X-Request-Id: req-1" -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{
+    "nome": "Maria Cliente",
+    "email": "maria@onfly.com.br",
+    "password": "senha12345",
+    "password_confirmation": "senha12345"
+  }'
+```
+
+Campos: `nome` (obrigatório), `email` (obrigatório, único), `password` (mínimo 8, requer `password_confirmation`), `is_admin` (opcional, boolean). Resposta **201** com os dados do usuário e a `api_key` (exibida uma única vez):
+
+```json
+{
+  "data": {
+    "ref": "usr-...",
+    "name": "Maria Cliente",
+    "email": "maria@onfly.com.br",
+    "is_admin": false,
+    "api_key": "AQcL0aia...",
+    "criado_em": "2026-06-22 20:02:56"
+  }
+}
+```
+
+### `POST /pedido` — criar pedido
+
+```bash
+curl -X POST http://localhost:8080/pedido \
+  -H "X-Request-Id: req-1" -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{
+    "solicitante": "Maria Cliente",
+    "data_partida": "20-06-2026",
+    "data_retorno": "25-06-2026",
+    "destino": { "cidade": "São Paulo", "estado": "SP", "pais": "Brasil" }
+  }'
+```
+
+Datas no formato **`DD-MM-YYYY`**. `data_retorno` deve ser igual ou posterior à `data_partida`.
+
+### `GET /pedido` — listar (com filtros)
+
+Filtros opcionais via query string:
+
+- `status` — `1` (Solicitado), `2` (Aprovado) ou `3` (Cancelado)
+- `data_inicio` — `DD-MM-YYYY`
+- `data_fim` — `DD-MM-YYYY` (igual ou posterior a `data_inicio`)
+
+```bash
+curl "http://localhost:8080/pedido?status=1&data_inicio=01-06-2026&data_fim=30-06-2026" \
+  -H "X-Request-Id: req-1" -H "Authorization: Bearer $TOKEN" -H "Accept: application/json"
+```
+
+Um usuário comum vê apenas os **próprios** pedidos. Um **admin** enxerga os pedidos de **todos** os usuários.
+
+### `PATCH /pedido/{referencia_pedido}/status` — atualizar status (admin)
+
+```bash
+curl -X PATCH http://localhost:8080/pedido/ped-XXXX/status \
+  -H "X-Request-Id: req-1" -H "Authorization: Bearer $TOKEN_ADMIN" \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{"status": 2}'
+```
+
+`status`: `2` (Aprovado) ou `3` (Cancelado). Exige usuário **admin** (caso contrário, **403**).
+
+## Documentação Swagger
+
+A documentação interativa fica em **http://localhost:8080/api/documentation** e é gerada automaticamente no boot. Para regerar manualmente após mudar anotações:
+
+```bash
+./run php artisan l5-swagger:generate
+```
+
+## Testes
+
+```bash
+./run php artisan test
+```
+
+A suíte cobre os fluxos de cadastro, autenticação, criação/listagem/detalhe de pedidos, atualização de status, isolamento de dados e a visão de admin.
+
+## Regras de negócio
+
+Implementadas:
+
+- Autenticação via JWT.
+- **Isolamento de dados:** cada usuário só enxerga os próprios pedidos.
+- **Admin:** enxerga os pedidos de todos os usuários e é o único que pode atualizar o status de um pedido.
+- O admin **não pode** alterar o status do **próprio** pedido (responde **403**).
+- **Cancelamento condicional:** o cancelamento de um pedido só é permitido enquanto ele não tiver sido aprovado. Tentar cancelar um pedido já aprovado retorna **409 Conflict**.
+- **Notificação de status:** o usuário solicitante é notificado (e-mail + registro em banco) sempre que seu pedido é aprovado ou cancelado. O envio é síncrono (sem fila).

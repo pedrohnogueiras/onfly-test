@@ -13,11 +13,11 @@ use Illuminate\Support\Facades\Hash;
 class UserService
 {
     /**
-     * Registra um novo usuário cliente (auto-cadastro) e retorna seus dados
-     * acompanhados da api_key em texto puro, exibida uma única vez.
+     * Registra um novo usuário e retorna seus dados acompanhados da api_key
+     * em texto puro, exibida uma única vez.
      *
-     * O campo is_admin é sempre forçado para false, impedindo escalonamento
-     * de privilégios via payload.
+     * O campo is_admin é definido a partir do payload recebido (via RegisterRequestDTO),
+     * sendo false por padrão quando omitido.
      */
     public function register(RegisterRequestDTO $registerData): RegisteredUserDTO
     {
@@ -25,7 +25,7 @@ class UserService
             $user = User::create([
                 'name' => $registerData->name,
                 'email' => $registerData->email,
-                'is_admin' => false,
+                'is_admin' => $registerData->isAdmin,
                 'password' => Hash::make($registerData->password),
             ]);
 

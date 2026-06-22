@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: roda php-cs-fixer (PSR-12) e phpmd nos arquivos PHP em stage.
+# O PHP vive dentro do container, então tudo é executado via `docker exec`.
+#
+set -euo pipefail
+
+CONTAINER="onfly_app"
+WORKDIR="/var/www/html"
+
+# Arquivos PHP adicionados/copiados/modificados que estão em stage.
+mapfile -t STAGED_PHP < <(git diff --cached --name-only --diff-filter=ACM -- '*.php')
+
+if [ ${#STAGED_PHP[@]} -eq 0 ]; then
+    exit 0
+fi
+
+# Garante que o container esteja de pé.
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
+    echo "✖ Container '${CONTAINER}' não está rodando. Suba com: docker compose up -d app"
+    exit 1
+fi
+
+run() {
+    docker exec -i -w "${WORKDIR}" "${CONTAINER}" "$@"
+}
+
+echo "▶ php-cs-fixer (PSR-12) em ${#STAGED_PHP[@]} arquivo(s)..."
+if ! run vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php --path-mode=intersection -- "${STAGED_PHP[@]}"; then
+    echo
+    echo "✖ Estilo fora do padrão. Corrija com: composer lint:fix (e dê git add)."
+    exit 1
+fi
+
+echo "▶ phpmd nos arquivos em stage..."
+PHPMD_FILES=$(IFS=,; echo "${STAGED_PHP[*]}")
+if ! run vendor/bin/phpmd "${PHPMD_FILES}" text phpmd.xml; then
+    echo
+    echo "✖ phpmd encontrou problemas. Ajuste antes de commitar."
+    exit 1
+fi
+
+echo "✔ Lint OK."
+exit 0

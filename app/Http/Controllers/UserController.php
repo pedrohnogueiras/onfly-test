@@ -11,6 +11,7 @@ use App\Logging\RequestLogger;
 use App\Services\UserService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 use Throwable;
 
 /**
@@ -26,6 +27,57 @@ class UserController extends Controller
     ) {
     }
 
+    #[OA\Post(
+        path: '/usuario',
+        summary: 'Cadastrar novo usuário',
+        description: 'Cria um novo usuário e retorna os dados com a api_key, exibida apenas neste momento.',
+        tags: ['Usuários'],
+        parameters: [
+            new OA\Parameter(
+                name: 'X-Request-Id',
+                in: 'header',
+                required: true,
+                description: 'Identificador único da requisição (UUID).',
+                schema: new OA\Schema(type: 'string', format: 'uuid'),
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['nome', 'email', 'password', 'password_confirmation'],
+                properties: [
+                    new OA\Property(property: 'nome', type: 'string', maxLength: 255, example: 'João Silva'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email', maxLength: 255, example: 'joao@exemplo.com'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8, example: 'senha1234'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', minLength: 8, example: 'senha1234'),
+                    new OA\Property(property: 'is_admin', type: 'boolean', example: false, description: 'Define se o usuário terá perfil administrador. Opcional, padrão false.'),
+                ],
+                type: 'object',
+            ),
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Usuário cadastrado com sucesso.',
+                content: new OA\JsonContent(ref: '#/components/schemas/RespostaUsuarioCadastrado'),
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Header X-Request-Id ausente.',
+                content: new OA\JsonContent(ref: '#/components/schemas/RespostaErro'),
+            ),
+            new OA\Response(
+                response: 409,
+                description: 'E-mail já cadastrado.',
+                content: new OA\JsonContent(ref: '#/components/schemas/RespostaErro'),
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Dados de entrada inválidos.',
+                content: new OA\JsonContent(ref: '#/components/schemas/RespostaErro'),
+            ),
+        ],
+    )]
     public function store(UserRegisterRequest $request): JsonResponse
     {
         $this->logger->setContext([

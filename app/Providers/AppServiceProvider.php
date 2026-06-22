@@ -14,9 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Uma instância por request: o contexto definido em um ponto (ex.: controller)
-        // fica disponível para qualquer componente que injete o RequestLogger no mesmo request.
         $this->app->scoped(RequestLogger::class);
+        $this->app->register(\L5Swagger\L5SwaggerServiceProvider::class);
     }
 
     /**
