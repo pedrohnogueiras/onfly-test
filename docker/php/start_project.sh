@@ -37,8 +37,6 @@ if [ -f "artisan" ]; then
         php artisan migrate --force || true
         php artisan db:seed --force || true
 
-        echo "Creating default users (cliente / admin)..."
-        php artisan app:create-users || true
     fi
 
     echo "Clearing Laravel cache..."

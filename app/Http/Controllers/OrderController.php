@@ -36,7 +36,7 @@ class OrderController extends Controller
     #[OA\Post(
         path: '/pedido',
         summary: 'Criar pedido de viagem',
-        description: 'Cria um novo pedido de viagem para o usuário autenticado.',
+        description: 'Cria um novo pedido de viagem para o usuário.',
         tags: ['Pedidos'],
         parameters: [
             new OA\Parameter(
