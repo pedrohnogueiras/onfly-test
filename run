@@ -1,0 +1,6 @@
+#!/bin/bash
+
+COMMAND=$1
+shift
+
+docker exec -i -w /var/www/html/ onfly_app "$COMMAND" "$@"

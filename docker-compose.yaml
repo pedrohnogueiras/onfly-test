@@ -1,0 +1,71 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: onfly_app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: onfly
+      DB_USERNAME: onfly_user
+      DB_PASSWORD: onfly_user_1
+
+      CACHE_STORE: database
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - onfly_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: onfly_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - onfly_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: onfly_mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: onfly
+      MYSQL_USER: onfly_user
+      MYSQL_PASSWORD: onfly_user_1
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - onfly_network
+
+networks:
+  onfly_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
