@@ -193,7 +193,7 @@
                     "Pedidos"
                 ],
                 "summary": "Criar pedido de viagem",
-                "description": "Cria um novo pedido de viagem para o usuário autenticado.",
+                "description": "Cria um novo pedido de viagem para o usuário.",
                 "operationId": "2503ac538d21340532cb460ed46b6964",
                 "parameters": [
                     {
