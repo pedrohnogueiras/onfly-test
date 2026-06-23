@@ -12,6 +12,7 @@ API REST em Laravel para o teste de desenvolvimento Onfly, com autenticação vi
 - [Usuários de teste](#usuários-de-teste)
 - [Autenticação](#autenticação)
 - [Endpoints](#endpoints)
+- [Collection do Postman](#collection-do-postman)
 - [Documentação Swagger](#documentação-swagger)
 - [Testes](#testes)
 - [Regras de negócio](#regras-de-negócio)
@@ -223,6 +224,16 @@ curl -X PATCH http://localhost:8080/pedido/ped-XXXX/status \
 ```
 
 `status`: `2` (Aprovado) ou `3` (Cancelado). Exige usuário **admin** (caso contrário, **403**).
+
+## Collection do Postman
+
+O arquivo **`Onfly Teste.postman_collection.json`** (na raiz do projeto) é uma collection do Postman com exemplos de todas as rotas da API.
+
+Para usá-la:
+
+1. No Postman, vá em **Import** e selecione o arquivo `Onfly Teste.postman_collection.json`.
+2. Ajuste a URL base para `http://localhost:8080` (caso necessário) e informe o header `X-Request-Id` exigido em todas as requisições.
+3. Obtenha o token em `POST /auth/token` e use-o (header `Authorization: Bearer <token>`) nas rotas protegidas de pedido.
 
 ## Documentação Swagger
 
